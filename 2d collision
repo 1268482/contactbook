@@ -1,0 +1,217 @@
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#include <cmath>
+
+using namespace std;
+using namespace sf;
+
+const unsigned int WIDTH  = 1000;
+const unsigned int HEIGHT = 600;
+
+struct Mass2D {
+    double   m;      
+    Vector2f pos;    
+    Vector2f vel;   
+    double   radius; 
+    Color    color;
+};
+
+float dot(const Vector2f& a, const Vector2f& b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+int main() {
+    Mass2D A, B;
+
+    cout << "Enter mass of A (kg): ";
+    cin >> A.m;
+    cout << "Enter initial velocity of A (vx vy, px/s): ";
+    cin >> A.vel.x >> A.vel.y;
+
+    cout << "Enter mass of B (kg): ";
+    cin >> B.m;
+    cout << "Enter initial velocity of B (vx vy, px/s): ";
+    cin >> B.vel.x >> B.vel.y;
+
+   
+    A.color = Color::Red;
+    B.color = Color::Blue;
+
+    A.pos = Vector2f(300.f, 300.f);
+    B.pos = Vector2f(700.f, 300.f);
+
+    if (A.m < B.m) {
+        A.radius = 30.0;
+        B.radius = 40.0;
+    } else if (A.m > B.m) {
+        A.radius = 40.0;
+        B.radius = 30.0;
+    } else {
+        A.radius = 30.0;
+        B.radius = 30.0;
+    }
+
+    RenderWindow window(VideoMode(Vector2u(WIDTH, HEIGHT)), "2D Elastic Collision (SFML 3)");
+    window.setFramerateLimit(60);
+
+    CircleShape shapeA(static_cast<float>(A.radius));
+    shapeA.setFillColor(A.color);
+    shapeA.setOrigin(Vector2f(static_cast<float>(A.radius),
+                              static_cast<float>(A.radius)));
+
+    CircleShape shapeB(static_cast<float>(B.radius));
+    shapeB.setFillColor(B.color);
+    shapeB.setOrigin(Vector2f(static_cast<float>(B.radius),
+                              static_cast<float>(B.radius)));
+
+    Clock clock;
+
+    Font font;
+    if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
+        cout << "Failed to load font. Adjust font path." << endl;
+    }
+
+    Text info(font, "2D Elastic Collision of Two Masses", 18);
+    info.setFillColor(Color::Black);
+    info.setPosition(Vector2f(20.f, 10.f));
+
+    Text velInfo(font, "", 16);
+    velInfo.setFillColor(Color::Black);
+    velInfo.setPosition(Vector2f(20.f, 40.f));
+
+    bool hasCollided = false;
+
+    float leftWall   = 50.f;
+    float rightWall  = WIDTH  - 50.f;
+    float topWall    = 50.f;
+    float bottomWall = HEIGHT - 50.f;
+
+    while (window.isOpen()) {
+        while (auto ev = window.pollEvent()) {
+            if (ev->is<Event::Closed>())
+                window.close();
+        }
+
+        float dt = clock.restart().asSeconds();
+
+        A.pos += A.vel * dt;
+        B.pos += B.vel * dt;
+
+        if (A.pos.x - A.radius < leftWall) {
+            A.pos.x = leftWall + static_cast<float>(A.radius);
+            A.vel.x = -A.vel.x;
+        }
+        if (A.pos.x + A.radius > rightWall) {
+            A.pos.x = rightWall - static_cast<float>(A.radius);
+            A.vel.x = -A.vel.x;
+        }
+        if (A.pos.y - A.radius < topWall) {
+            A.pos.y = topWall + static_cast<float>(A.radius);
+            A.vel.y = -A.vel.y;
+        }
+        if (A.pos.y + A.radius > bottomWall) {
+            A.pos.y = bottomWall - static_cast<float>(A.radius);
+            A.vel.y = -A.vel.y;
+        }
+
+        if (B.pos.x - B.radius < leftWall) {
+            B.pos.x = leftWall + static_cast<float>(B.radius);
+            B.vel.x = -B.vel.x;
+        }
+        if (B.pos.x + B.radius > rightWall) {
+            B.pos.x = rightWall - static_cast<float>(B.radius);
+            B.vel.x = -B.vel.x;
+        }
+        if (B.pos.y - B.radius < topWall) {
+            B.pos.y = topWall + static_cast<float>(B.radius);
+            B.vel.y = -B.vel.y;
+        }
+        if (B.pos.y + B.radius > bottomWall) {
+            B.pos.y = bottomWall - static_cast<float>(B.radius);
+            B.vel.y = -B.vel.y;
+        }
+
+        Vector2f diff = B.pos - A.pos;
+        float distSq  = diff.x * diff.x + diff.y * diff.y;
+        float minDist = static_cast<float>(A.radius + B.radius);
+        float minDistSq = minDist * minDist;
+
+        if (distSq <= minDistSq && !hasCollided) {
+            float dist = sqrt(distSq);
+            // Normal from A to B
+            Vector2f n = (dist > 1e-6f)
+                       ? Vector2f(diff.x / dist, diff.y / dist)
+                       : Vector2f(1.f, 0.f);
+
+            // Relative velocity along normal
+            Vector2f relVel = B.vel - A.vel;
+            float relVelAlongN = dot(relVel, n);
+
+            // Only handle if moving towards each other
+            if (relVelAlongN < 0.f) {
+                double m1 = A.m;
+                double m2 = B.m;
+
+                // Project velocities onto normal
+                float v1n = dot(A.vel, n);
+                float v2n = dot(B.vel, n);
+
+                // 1D elastic collision along the normal
+                float v1nAfter = static_cast<float>(
+                    ((m1 - m2) / (m1 + m2)) * v1n +
+                    ((2.0 * m2) / (m1 + m2)) * v2n
+                );
+                float v2nAfter = static_cast<float>(
+                    ((2.0 * m1) / (m1 + m2)) * v1n +
+                    ((m2 - m1) / (m1 + m2)) * v2n
+                );
+
+                // Tangential components stay the same
+                Vector2f v1nVec = n * v1n;
+                Vector2f v2nVec = n * v2n;
+                Vector2f v1tVec = A.vel - v1nVec;
+                Vector2f v2tVec = B.vel - v2nVec;
+
+                A.vel = v1tVec + n * v1nAfter;
+                B.vel = v2tVec + n * v2nAfter;
+
+                // Simple positional correction to un-overlap
+                float overlap = 0.5f * (minDist - dist);
+                if (overlap > 0.f) {
+                    A.pos -= n * overlap;
+                    B.pos += n * overlap;
+                }
+
+                hasCollided = true;
+            }
+        }
+
+        // Reset collision flag when well separated
+        if (distSq > (minDist + 2.f) * (minDist + 2.f)) {
+            hasCollided = false;
+        }
+
+        // 5) Update shapes
+        shapeA.setPosition(A.pos);
+        shapeB.setPosition(B.pos);
+
+        velInfo.setString(
+            "vA = (" + to_string(static_cast<int>(A.vel.x)) + ", " +
+            to_string(static_cast<int>(A.vel.y)) + ") px/s, vB = (" +
+            to_string(static_cast<int>(B.vel.x)) + ", " +
+            to_string(static_cast<int>(B.vel.y)) + ") px/s"
+        );
+
+        // 6) Render
+        window.clear(Color::White);
+
+        window.draw(shapeA);
+        window.draw(shapeB);
+        window.draw(info);
+        window.draw(velInfo);
+
+        window.display();
+    }
+
+    return 0;
+}
