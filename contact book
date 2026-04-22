@@ -1,0 +1,172 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// Color codes
+const string RESET   = "\033[0m";
+const string RED     = "\033[31m";
+const string GREEN   = "\033[32m";
+const string YELLOW  = "\033[33m";
+const string BLUE    = "\033[34m";
+const string MAGENTA = "\033[35m";
+const string CYAN    = "\033[36m";
+const string WHITE   = "\033[37m";
+
+struct Contact {
+    string name, phone, email;
+};
+
+void dltcontact1(vector<Contact>& contacts){
+    if(contacts.empty()) {
+        cout << RED << "No contact to delete\n" << RESET;
+        return;
+    }
+    cout << YELLOW << "Enter the name of the contact: " << RESET;
+    cin >> ws;
+    string name;
+    getline(cin,name);
+    bool x=false;
+    for(size_t i=0;i<contacts.size();++i){
+        if(contacts[i].name==name){
+            contacts.erase(contacts.begin()+i);
+            x = true;
+            break;
+        }
+    }
+    if(!x) cout << RED << "No names matching!!\n" << RESET;
+    else   cout << GREEN << "Contact deleted :)\n" << RESET;
+}
+
+void dltcontact2(vector<Contact>& contacts){
+    if(contacts.empty()) {
+        cout << RED << "No contact to delete\n" << RESET;
+        return;
+    }
+    cout << YELLOW << "Enter the name of the contact: " << RESET;
+    cin >> ws;
+    string name;
+    getline(cin,name);
+    bool x=false;
+    for(size_t i=0;i<contacts.size();){
+        if(contacts[i].name==name){
+            contacts.erase(contacts.begin()+i);
+            x = true;
+        } else {
+            ++i;
+        }
+    }
+    if(!x) cout << RED << "No names matching!!\n" << RESET;
+    else   cout << GREEN << "Contact deleted :)\n" << RESET;
+}
+
+void loadFromFile(vector<Contact>& contacts) {
+    ifstream file("contacts.txt");
+    if (!file.is_open()) return;
+
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Contact c;
+        getline(ss, c.name, ',');
+        getline(ss, c.phone, ',');
+        getline(ss, c.email, ',');
+        contacts.push_back(c);
+    }
+}
+
+void saveToFile(const vector<Contact>& contacts) {
+    ofstream file("contacts.txt");
+    for (const auto& c : contacts) {
+        file << c.name << "," << c.phone << "," << c.email << "\n";
+    }
+}
+
+void addContact(vector<Contact>& contacts) {
+    Contact c;
+    cout << YELLOW << "Name: " << RESET;
+    cin >> ws;
+    getline(cin, c.name);
+    cout << YELLOW << "Phone: " << RESET;
+    getline(cin, c.phone);
+    cout << YELLOW << "Email: " << RESET;
+    getline(cin, c.email);
+    contacts.push_back(c);
+    cout << GREEN << "Contact added.\n" << RESET;
+}
+
+void listContacts(const vector<Contact>& contacts) {
+    if (contacts.empty()) {
+        cout << RED << "No contacts.\n" << RESET;
+        return;
+    }
+    cout << BLUE << "name:phone:email\n" << RESET;
+    for (const auto& c : contacts) {
+        cout << WHITE << c.name << " | " << c.phone << " | " << c.email << "\n" << RESET;
+    }
+}
+
+void listContacts1(const vector<Contact>& contacts) {
+    if (contacts.empty()) {
+        cout << RED << "No contacts.\n" << RESET;
+        return;
+    }
+    string name;
+    cout << YELLOW << "Enter the name: " << RESET;
+    cin >> ws;
+    getline(cin, name);
+
+    cout << BLUE << "name:phone:email\n" << RESET;
+    int count=0;
+    for (const auto& c : contacts) {
+        if(name==c.name){
+            cout << WHITE << c.name << " | " << c.phone << " | " << c.email << "\n" << RESET;
+            count=1;
+        }
+    }
+    if(count==0) cout << RED << "No match found :(\n" << RESET;
+}
+
+int main() {
+    vector<Contact> contacts;
+    loadFromFile(contacts);
+
+    while (true) {
+        cout << CYAN << "\n=== Contact Book ===\n" << RESET;
+        cout << YELLOW << "1. Add contact\n" << RESET;
+        cout << YELLOW << "2. List contacts / Search\n" << RESET;
+        cout << YELLOW << "3. Delete a contact\n" << RESET;
+        cout << YELLOW << "0. Exit\n" << RESET;
+        cout << GREEN  << "Choice: " << RESET;
+
+        int choice;
+        if (!(cin >> choice)) break;
+
+        if (choice == 0) {
+            saveToFile(contacts);
+            cout << GREEN << "Saved. Bye.\n" << RESET;
+            break;
+        } else if (choice == 1) {
+            addContact(contacts);
+        } else if (choice == 2) {
+            int opt;
+            cout << MAGENTA << "20. Search with name\n" << RESET;
+            cout << MAGENTA << "21. List all names\n" << RESET;
+            cout << GREEN   << "Enter choice: " << RESET;
+            cin >> opt;
+            if(opt==21)      listContacts(contacts);
+            else if (opt==20) listContacts1(contacts);
+            else cout << RED << "you're gay\n" << RESET;
+        } else if (choice==3){
+            int option;
+            cout << MAGENTA << "30. Delete all the contacts with the name\n" << RESET;
+            cout << MAGENTA << "31. Delete the first contact with the name\n" << RESET;
+            cout << GREEN   << "Enter your choice: " << RESET;
+            cin >> option;
+            if(option==30)      dltcontact2(contacts);
+            else if(option==31) dltcontact1(contacts);
+            else cout << RED << "Invalid input\n" << RESET;
+        } else {
+            cout << RED << "Invalid input" << RESET;
+        }
+    }
+    return 0;
+}
